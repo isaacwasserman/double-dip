@@ -501,7 +501,9 @@ if __name__ == "__main__":
         end_ind = len(glob.glob(os.path.join(input_dir, '*')))
     if not os.path.exists(output_dir):
         os.makedirs(output_dir)
-    for i,img_path in enumerate(glob.glob(os.path.join(input_dir, '*'))[start_ind:end_ind]):
+    for i,img_path in enumerate(glob.glob(os.path.join(input_dir, '*.jpg'))[start_ind:end_ind]):
+        if not os.path.exists(os.path.join(output_dir, os.path.basename(img_path))):
+            continue
         print(f"Segmenting image {i+1}", end="\r")
         img = plt.imread(img_path)
         probs = segment(img, iters=1000)[0,0]
