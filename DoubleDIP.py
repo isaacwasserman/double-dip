@@ -13,6 +13,7 @@ from scipy.ndimage.measurements import center_of_mass
 from functools import partial
 import matplotlib.pyplot as plt
 import gc
+from skimage.filters import threshold_otsu
 
 # LeakyReLU activations
 # Strided convolution downsampling
@@ -481,3 +482,30 @@ def segment(img, iters=1000, device='cuda'):
     torch.cuda.empty_cache()
     gc.collect()
     return m.cpu().numpy()
+
+if __name__ == "__main__":
+    # accept command line arguments
+    import argparse
+    import glob
+    import os
+    parser = argparse.ArgumentParser(description='DoubleDIP Segmentation')
+    parser.add_argument('--input', type=str, default='images', help='input image')
+    parser.add_argument('--output', type=str, default='output', help='output image')
+    parser.add_argument('--start', type=int, default=0, help='start index')
+    parser.add_argument('--end', type=int, default=-1, help='end index')
+    input_dir = parser.parse_args().input
+    output_dir = parser.parse_args().output
+    start_ind = parser.parse_args().start
+    end_ind = parser.parse_args().end
+    if end_ind == -1:
+        end_ind = len(glob.glob(os.path.join(input_dir, '*')))
+    if not os.path.exists(output_dir):
+        os.makedirs(output_dir)
+    for i,img_path in enumerate(glob.glob(os.path.join(input_dir, '*'))[start_ind:end_ind]):
+        print(f"Segmenting image {i+1}", end="\r")
+        img = plt.imread(img_path)
+        probs = segment(img, iters=1000)[0,0]
+        threshold = threshold_otsu(probs)
+        mask = probs > threshold
+        mask = Image.fromarray((255*mask).astype(np.uint8))
+        mask.save(os.path.join(output_dir, os.path.basename(img_path)))
