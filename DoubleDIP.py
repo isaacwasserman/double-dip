@@ -488,6 +488,7 @@ if __name__ == "__main__":
     import argparse
     import glob
     import os
+    import pathlib
     parser = argparse.ArgumentParser(description='DoubleDIP Segmentation')
     parser.add_argument('--input', type=str, default='images', help='input image')
     parser.add_argument('--output', type=str, default='output', help='output image')
@@ -502,12 +503,21 @@ if __name__ == "__main__":
     if not os.path.exists(output_dir):
         os.makedirs(output_dir)
     for i,img_path in enumerate(glob.glob(os.path.join(input_dir, '*.jpg'))[start_ind:end_ind]):
-        if not os.path.exists(os.path.join(output_dir, os.path.basename(img_path))):
+        if os.path.exists(os.path.join(output_dir, os.path.basename(img_path))):
             continue
-        print(f"Segmenting image {i+1}", end="\r")
-        img = plt.imread(img_path)
-        probs = segment(img, iters=1000)[0,0]
-        threshold = threshold_otsu(probs)
-        mask = probs > threshold
-        mask = Image.fromarray((255*mask).astype(np.uint8))
-        mask.save(os.path.join(output_dir, os.path.basename(img_path)))
+        else:
+            p = pathlib.Path(os.path.join(output_dir, os.path.basename(img_path)))
+            try:
+                p.touch(exist_ok=False)
+            except:
+                print(f"output file {os.path.join(output_dir, os.path.basename(img_path))} already exists. skipping...")
+                continue
+            print(f"Segmenting image {i+1}\n")
+            img = plt.imread(img_path)
+            probs = segment(img, iters=1000)[0,0]
+            threshold = threshold_otsu(probs)
+            mask = probs > threshold
+            mask = Image.fromarray((255*mask).astype(np.uint8))
+            mask.save(os.path.join(output_dir, os.path.basename(img_path)))
+            num_in_dir = len(list(glob.glob(os.path.join(output_dir, '*.jpg'))))
+            print(num_in_dir, "images segmented")
